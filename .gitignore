@@ -1,0 +1,11 @@
+*~ 
+*.tmp
+sandbox/
+.DS_Store
+*/.RData
+.RData
+*/.Rhistory
+.Rhistory
+myenv/
+.DS_Store
+*/.DS_Store
