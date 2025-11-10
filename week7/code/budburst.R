@@ -23,14 +23,10 @@ budburst_data$score <- gsub("<5", "4", budburst_data$score)
 budburst_data$score <- gsub(">5", "5", budburst_data$score)
 budburst_data$score <- gsub("<6", "5", budburst_data$score)
 budburst_data$score <- gsub(">6", "6", budburst_data$score)
-budburst_data$score <- gsub("<7", "7", budburst_data$score)
-budburst_data$score <- gsub(">7", "7", budburst_data$score)
-budburst_data$score <- gsub("<8", "8", budburst_data$score)
-budburst_data$score <- gsub(">8", "8", budburst_data$score)
-budburst_data$score <- gsub("<9", "9", budburst_data$score)
-budburst_data$score <- gsub(">9", "9", budburst_data$score)
-budburst_data$score <- gsub("<10", "10", budburst_data$score)
-budburst_data$score <- gsub(">10", "10", budburst_data$score)
+
+export_bud_data <- budburst_data[, c("date", "score")]
+
+write.csv(export_bud_data, "../results/budburst_day_by_day.csv", row.names = FALSE)
 
 #format the score as a numeric value
 budburst_data$score <- as.numeric(budburst_data$score)
