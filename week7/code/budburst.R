@@ -8,6 +8,15 @@ rm(list = ls())
 #import data file
 budburst_data <- read.csv("../data/phenology.csv")
 
+tree <- read.csv("../data/trees.csv")
+
+quercus_trees <- tree %>%
+  filter(species == "quercus.robur") %>%
+  select(TreeID)
+
+budburst_data <- budburst_data_a %>%
+  filter(TreeID %in% quercus_trees$TreeID)
+
 #in the data, there are scores that have greater than symbols instead of just a number. This converts it into a number.
 budburst_data$score <- gsub("<1", "0", budburst_data$score)
 budburst_data$score <- gsub(">1", "1", budburst_data$score)
@@ -55,3 +64,6 @@ filtered_data <- filtered_data %>% select(-note)
 export_data <- filtered_data[, c("Year", "date")]
 
 write.csv(export_data, "../results/budburst_day.csv", row.names = FALSE)
+
+
+
