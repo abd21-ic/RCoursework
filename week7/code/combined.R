@@ -2,11 +2,13 @@
 #install.packages("dplyr")
 #install.packages("ggplot2")
 #install.packages("tidyr")
+install.packages("lme4")
 
 library(lubridate)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(lme4)
 
 # Clear environment
 rm(list = ls())
@@ -63,7 +65,7 @@ export_data <- stage2_data %>%
   group_by(TreeID, Year) %>%
   summarise(first_stage2_date = min(date), .groups = "drop") %>%
   mutate(
-    April_Days = as.integer(first_stage2_date - make_date(Year, 4, 1))
+    Julian_Day = yday(first_stage2_date)   # Julian day of year
   )
 
 write.csv(export_data, "../results/first_stage2_per_tree.csv", row.names = FALSE)
@@ -109,27 +111,74 @@ averages <- filtered_weather_data %>%
 
 combined_data <- export_data %>%
   left_join(averages, by = "Year") %>%
-  select(TreeID, Year, first_stage2_date, April_Days, Air_Temp, Air_Temp_Max, Air_Temp_Min, Grass_Temp, Rain_mm_Tot)
+  select(TreeID, Year, first_stage2_date, Julian_Day, Air_Temp, Air_Temp_Max, Air_Temp_Min, Grass_Temp, Rain_mm_Tot)
 
-write.csv(combined_data, "../results/combined_data_per_tree.csv", row.names = FALSE)
+write.csv(combined_data, "../results/combined_data_per_tree_julian.csv", row.names = FALSE)
 
 # -------------------------------
-# Linear model: April Days vs Air Temperature
+# Linear mixed model: Julian Day vs Air Temperature
 # -------------------------------
 
-air_lm_model <- glm(April_Days ~ Air_Temp, data = combined_data)
-summary(air_lm_model)
+lmm_model <- lmer(Julian_Day ~ Air_Temp + (1 | TreeID) + (1 | Year), data = combined_data)
+summary(lmm_model)
 
-# Plot
-ggplot(combined_data, aes(x = Air_Temp, y = April_Days)) +
-  geom_point(color = "black", size = 2) +
-  geom_smooth(method = "lm", color = "black") +
+# -------------------------------
+# Plot Julian Day vs Air Temperature
+# -------------------------------
+
+ggplot(combined_data, aes(x = Air_Temp, y = Julian_Day)) +
+  geom_jitter(color = "black", size = 2, width = 0.03, height = 0.03) +  # add jitter
+  geom_smooth(method = "lm", se = TRUE, color = "black", level = 0.99) +  # 99% CI
   labs(
     x = "Average April Air Temperature (°C)",
-    y = "April Budburst Days"
+    y = "Julian Budburst Day"
   ) +
   theme_classic()
 
+# -------------------------------
 # Diagnostic plots
-par(mfrow = c(2,2))
-plot(air_lm_model)
+# -------------------------------
+
+residuals <- resid(lmm_model)
+fitted <- fitted(lmm_model)
+
+# Residuals vs Fitted
+plot(fitted, residuals,
+     xlab = "Fitted values",
+     ylab = "Residuals",
+     main = "Residuals vs Fitted")
+abline(h = 0, lty = 2, col = "red")
+
+# Q-Q plot
+qqnorm(residuals, main = "Normal Q-Q Plot")
+qqline(residuals, col = "red")
+
+# Scale-Location plot
+sqrt_abs_resid <- sqrt(abs(residuals))
+plot(fitted, sqrt_abs_resid,
+     xlab = "Fitted values",
+     ylab = "√|Residuals|",
+     main = "Scale-Location Plot")
+abline(h = mean(sqrt_abs_resid), lty = 2, col = "red")
+
+# Histogram of residuals
+hist(residuals, breaks = 30,
+     main = "Histogram of Residuals",
+     xlab = "Residuals")
+
+mean_julian <- mean(combined_data$Julian_Day, na.rm = TRUE)
+sd_julian <- sd(combined_data$Julian_Day, na.rm = TRUE)
+
+min_julian <- min(combined_data$Julian_Day, na.rm = TRUE)
+max_julian <- max(combined_data$Julian_Day, na.rm = TRUE)
+
+min_temp <- min(combined_data$Air_Temp, na.rm = TRUE)
+max_temp <- max(combined_data$Air_Temp, na.rm = TRUE)
+
+min_temp
+max_temp
+
+combined_data %>%
+  group_by(Year) %>%
+  summarise(mean_temp = mean(Air_Temp, na.rm = TRUE)) %>%
+  slice_max(mean_temp, n = 1)

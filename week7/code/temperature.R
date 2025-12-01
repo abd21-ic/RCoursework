@@ -73,7 +73,7 @@ ggplot(combined_data, aes(x = Air_Temp, y = April_Days)) +
   geom_smooth(method = "lm", color = "black") +
   labs(
     x = "Average April Air Temperature (°C)",
-    y = "Days Since April 1",
+    y = "April Budburst Days",
     title = ""
   ) +
   theme_classic()
